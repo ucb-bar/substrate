@@ -6,13 +6,13 @@ publish = false
 
 # begin-code-snippet dependencies
 [dependencies]
-substrate = { version = "0.3.0", registry = "substrate" }
-spectre = { version = "0.3.0", registry = "substrate" }
-sky130pdk = { version = "0.3.0", registry = "substrate" }
+substrate = { version = "0.4.0", registry = "substrate" }
+spectre = { version = "0.4.0", registry = "substrate" }
+sky130pdk = { version = "0.4.0", registry = "substrate" }
 
 serde = { version = "1", features = ["derive"] }
-rust_decimal = "1.30"
-rust_decimal_macros = "1.30"
+rust_decimal = "1.31"
+rust_decimal_macros = "1.31"
 # end-code-snippet dependencies
 
 # This feature flag allows us to control which tests are run.

@@ -12,10 +12,10 @@ use substrate::block::Block;
 use substrate::context::Context;
 use substrate::io::{Node, Signal, TestbenchIo};
 use substrate::pdk::corner::{InstallCorner, Pvt};
-use substrate::schematic::{Cell, HasSchematic};
+use substrate::schematic::{Cell, HasSchematicData};
 use substrate::simulation::data::HasNodeData;
 use substrate::simulation::waveform::{EdgeDir, TimeWaveform, WaveformRef};
-use substrate::simulation::{HasTestbenchSchematicImpl, Testbench};
+use substrate::simulation::{HasSimSchematic, Testbench};
 use substrate::Block;
 
 use super::Inverter;
@@ -38,15 +38,15 @@ impl InverterTb {
 // end-code-snippet struct-and-impl
 
 // begin-code-snippet schematic
-impl HasSchematic for InverterTb {
+impl HasSchematicData for InverterTb {
     type Data = Node;
 }
 
-impl HasTestbenchSchematicImpl<Sky130CommercialPdk, Spectre> for InverterTb {
+impl HasSimSchematic<Sky130CommercialPdk, Spectre> for InverterTb {
     fn schematic(
         &self,
         io: &<<Self as Block>::Io as substrate::io::SchematicType>::Data,
-        cell: &mut substrate::schematic::TestbenchCellBuilder<Sky130CommercialPdk, Spectre, Self>,
+        cell: &mut substrate::schematic::SimCellBuilder<Sky130CommercialPdk, Spectre, Self>,
     ) -> substrate::error::Result<Self::Data> {
         let inv = cell.instantiate(self.dut);
 
@@ -89,14 +89,13 @@ impl Testbench<Sky130CommercialPdk, Spectre> for InverterTb {
     type Output = InverterTbData;
     fn run(
         &self,
-        cell: &Cell<Self>,
-        sim: substrate::simulation::SimController<Sky130CommercialPdk, Spectre>,
+        sim: substrate::simulation::SimController<Sky130CommercialPdk, Spectre, Self>,
     ) -> Self::Output {
         let mut opts = Options::default();
-        sim.pdk.pdk.install_corner(self.pvt.corner, &mut opts);
         let output = sim
             .simulate(
                 opts,
+                Some(&self.pvt.corner),
                 Tran {
                     stop: dec!(2e-9),
                     errpreset: Some(spectre::ErrPreset::Conservative),
