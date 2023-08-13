@@ -15,9 +15,10 @@ use crate::io::{SchematicType, TestbenchIo};
 use crate::pdk::corner::InstallCorner;
 use crate::pdk::Pdk;
 use crate::schematic::conv::RawLib;
-use crate::schematic::{Cell, ExportsSchematicData, SimCellBuilder};
+use crate::schematic::{Cell, ExportsSchematicData};
 use crate::simulation::data::Save;
 use codegen::simulator_tuples;
+use substrate::schematic::Schematic;
 
 pub mod data;
 pub mod waveform;
@@ -38,6 +39,8 @@ pub trait Simulator: Any + Send + Sync {
     type Output;
     /// The error type returned by the simulator.
     type Error;
+    /// The netlister used by this simulator.
+    type Netlister;
 
     /// Simulates the given set of analyses.
     fn simulate_inputs(
@@ -172,25 +175,12 @@ impl<PDK: Pdk + InstallCorner<S>, S: Simulator, T: Testbench<PDK, S>> SimControl
 
 /// A testbench that can be simulated.
 pub trait Testbench<PDK: Pdk, S: Simulator>:
-    HasSimSchematic<PDK, S> + Block<Io = TestbenchIo>
+    Schematic<PDK, S::Netlister> + Block<Io = TestbenchIo>
 {
     /// The output produced by this testbench.
     type Output: Any + Serialize + DeserializeOwned;
     /// Run the testbench using the given simulation controller.
     fn run(&self, sim: SimController<PDK, S, Self>) -> Self::Output;
-}
-
-/// A block that has a schematic compatible with the given PDK and simulator.
-///
-/// Unlike [`Schematic`](crate::schematic::Schematic), this trait indicates that the schematic of this block
-/// is simulator-specific.
-pub trait HasSimSchematic<PDK: Pdk, S: Simulator>: Block + ExportsSchematicData {
-    /// Generates the block's schematic.
-    fn schematic(
-        &self,
-        io: &<<Self as Block>::Io as SchematicType>::Bundle,
-        cell: &mut SimCellBuilder<PDK, S, Self>,
-    ) -> crate::error::Result<Self::Data>;
 }
 
 #[impl_for_tuples(64)]

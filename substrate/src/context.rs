@@ -37,9 +37,9 @@ use crate::pdk::Pdk;
 use crate::schematic::conv::RawLib;
 use crate::schematic::{
     Cell as SchematicCell, CellBuilder as SchematicCellBuilder, CellHandle as SchematicCellHandle,
-    InstanceId, InstancePath, Schematic, SchematicContext, SimCellBuilder, SimCellHandle,
+    InstanceId, InstancePath, Schematic, SchematicContext, SimCellHandle,
 };
-use crate::simulation::{HasSimSchematic, SimController, SimulationContext, Simulator, Testbench};
+use crate::simulation::{SimController, SimulationContext, Simulator, Testbench};
 
 /// The global context.
 ///
@@ -268,7 +268,7 @@ impl<PDK: Pdk> Context<PDK> {
     /// Generates a schematic for `block` in the background.
     ///
     /// Returns a handle to the cell being generated.
-    pub fn generate_schematic<T: Schematic<PDK>>(&self, block: T) -> SchematicCellHandle<T> {
+    pub fn generate_schematic<N, T: Schematic<PDK, N>>(&self, block: T) -> SchematicCellHandle<T> {
         let context = self.clone();
         let mut inner = self.inner.write().unwrap();
         let id = inner.schematic.get_id();
@@ -291,57 +291,13 @@ impl<PDK: Pdk> Context<PDK> {
         }
     }
 
-    /// Generates a testbench schematic for `block` in the background.
-    ///
-    /// Returns a handle to the cell being generated.
-    pub(crate) fn generate_testbench_schematic<T, S>(&self, block: Arc<T>) -> SimCellHandle<T>
-    where
-        T: HasSimSchematic<PDK, S>,
-        S: Simulator,
-    {
-        let simulator = self.get_simulator::<S>();
-        let context = self.clone();
-        let mut inner = self.inner.write().unwrap();
-        let id = inner.schematic.get_id();
-        SimCellHandle(SchematicCellHandle {
-            id,
-            block: block.clone(),
-            cell: inner.schematic.cell_cache.generate(block, move |block| {
-                let (inner, io_data) = prepare_cell_builder(id, context, block.as_ref());
-                let mut cell_builder = SimCellBuilder { simulator, inner };
-                let data = block.schematic(&io_data, &mut cell_builder);
-                data.map(|data| {
-                    SchematicCell::new(
-                        io_data,
-                        block.clone(),
-                        data,
-                        Arc::new(cell_builder.finish()),
-                    )
-                })
-            }),
-        })
-    }
-
     /// Export the given block and all sub-blocks as a SCIR library.
     ///
     /// Returns a SCIR library and metadata for converting between SCIR and Substrate formats.
-    pub fn export_scir<T: Schematic<PDK>>(&self, block: T) -> Result<RawLib, scir::Issues> {
+    pub fn export_scir<N, T: Schematic<PDK, N>>(&self, block: T) -> Result<RawLib, scir::Issues> {
         let cell = self.generate_schematic(block);
         let cell = cell.cell();
         cell.raw.to_scir_lib(TopKind::Cell)
-    }
-
-    /// Export the given block and all sub-blocks as a SCIR library.
-    ///
-    /// Returns a SCIR library and metadata for converting between SCIR and Substrate formats.
-    pub fn export_testbench_scir<T, S>(&self, block: T) -> Result<RawLib, scir::Issues>
-    where
-        T: HasSimSchematic<PDK, S>,
-        S: Simulator,
-    {
-        let cell = self.generate_testbench_schematic(Arc::new(block));
-        let cell = cell.cell();
-        self.export_testbench_scir_for_cell(cell)
     }
 
     /// Export the given cell and all sub-cells as a SCIR library.
@@ -352,7 +308,7 @@ impl<PDK: Pdk> Context<PDK> {
         cell: &SchematicCell<T>,
     ) -> Result<RawLib, scir::Issues>
     where
-        T: HasSimSchematic<PDK, S>,
+        T: Testbench<PDK, S>,
         S: Simulator,
     {
         cell.raw.to_scir_lib(TopKind::Testbench)
@@ -421,12 +377,12 @@ impl ContextInner {
     }
 }
 
-fn prepare_cell_builder<PDK: Pdk, T: Block>(
+fn prepare_cell_builder<PDK: Pdk, N, T: Block>(
     id: crate::schematic::CellId,
     context: Context<PDK>,
     block: &T,
 ) -> (
-    SchematicCellBuilder<PDK, T>,
+    SchematicCellBuilder<PDK, N, T>,
     <<T as Block>::Io as SchematicType>::Bundle,
 ) {
     let mut node_ctx = NodeContext::new();

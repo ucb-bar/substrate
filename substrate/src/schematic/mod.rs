@@ -29,7 +29,7 @@ use crate::io::{
     SchematicBundle, SchematicType, TerminalView,
 };
 use crate::pdk::Pdk;
-use crate::simulation::{HasSimSchematic, Simulator};
+use crate::simulation::Simulator;
 
 /// A block that exports data from its schematic.
 ///
@@ -43,17 +43,17 @@ pub trait ExportsSchematicData: Block {
 }
 
 /// A block that can be netlisted in process design kit `PDK`.
-pub trait Schematic<PDK: Pdk>: ExportsSchematicData {
+pub trait Schematic<PDK: Pdk, N>: ExportsSchematicData {
     /// Generates the block's schematic.
     fn schematic(
         &self,
         io: &<<Self as Block>::Io as SchematicType>::Bundle,
-        cell: &mut CellBuilder<PDK, Self>,
+        cell: &mut CellBuilder<PDK, N, Self>,
     ) -> Result<Self::Data>;
 }
 
 /// A builder for creating a schematic cell.
-pub struct CellBuilder<PDK: Pdk, T: Block> {
+pub struct CellBuilder<PDK: Pdk, N, T> {
     /// The current global context.
     pub ctx: Context<PDK>,
     pub(crate) id: CellId,
@@ -65,7 +65,7 @@ pub struct CellBuilder<PDK: Pdk, T: Block> {
     pub(crate) primitives: Vec<PrimitiveDevice>,
     pub(crate) node_names: HashMap<Node, NameBuf>,
     pub(crate) cell_name: ArcStr,
-    pub(crate) phantom: PhantomData<T>,
+    pub(crate) phantom: PhantomData<(N, T)>,
     /// Outward-facing ports of this cell
     ///
     /// Directions are as viewed by a parent cell instantiating this cell; these
@@ -161,13 +161,7 @@ impl From<&str> for BlackboxContents {
     }
 }
 
-/// A builder for creating a simulation schematic cell.
-pub struct SimCellBuilder<PDK: Pdk, S: Simulator, T: Block> {
-    pub(crate) simulator: Arc<S>,
-    pub(crate) inner: CellBuilder<PDK, T>,
-}
-
-impl<PDK: Pdk, T: Block> CellBuilder<PDK, T> {
+impl<PDK: Pdk, N, T: Block> CellBuilder<PDK, N, T> {
     pub(crate) fn finish(self) -> RawCell {
         let mut roots = HashMap::with_capacity(self.node_names.len());
         let mut uf = self.node_ctx.into_uf();
@@ -229,7 +223,7 @@ impl<PDK: Pdk, T: Block> CellBuilder<PDK, T> {
     /// To generate and add the block simultaneously, use [`CellBuilder::instantiate`]. However,
     /// error recovery and other checks are not possible when using
     /// [`instantiate`](CellBuilder::instantiate).
-    pub fn generate<I: Schematic<PDK>>(&mut self, block: I) -> CellHandle<I> {
+    pub fn generate<I: Schematic<PDK, N>>(&mut self, block: I) -> CellHandle<I> {
         self.ctx.generate_schematic(block)
     }
 
@@ -239,7 +233,7 @@ impl<PDK: Pdk, T: Block> CellBuilder<PDK, T> {
     ///
     /// As with [`CellBuilder::generate`], the resulting handle must be added to the schematic with
     /// [`CellBuilder::add`] before it can be connected as an instance.
-    pub fn generate_blocking<I: Schematic<PDK>>(&mut self, block: I) -> Result<CellHandle<I>> {
+    pub fn generate_blocking<I: Schematic<PDK, N>>(&mut self, block: I) -> Result<CellHandle<I>> {
         let cell = self.ctx.generate_schematic(block);
         cell.try_cell()?;
         Ok(cell)
@@ -258,7 +252,7 @@ impl<PDK: Pdk, T: Block> CellBuilder<PDK, T> {
     ///
     /// The spawned thread may panic after this function returns if cell generation fails.
     #[track_caller]
-    pub fn add<I: Schematic<PDK>>(&mut self, cell: CellHandle<I>) -> Instance<I> {
+    pub fn add<I: Schematic<PDK, N>>(&mut self, cell: CellHandle<I>) -> Instance<I> {
         assert!(
             self.blackbox.is_none(),
             "cannot add instances to a blackbox cell"
@@ -283,7 +277,7 @@ impl<PDK: Pdk, T: Block> CellBuilder<PDK, T> {
     ///
     /// The spawned thread may panic after this function returns if cell generation fails.
     #[track_caller]
-    pub fn instantiate<I: Schematic<PDK>>(&mut self, block: I) -> Instance<I> {
+    pub fn instantiate<I: Schematic<PDK, N>>(&mut self, block: I) -> Instance<I> {
         assert!(
             self.blackbox.is_none(),
             "cannot add instances to a blackbox cell"
@@ -346,7 +340,7 @@ impl<PDK: Pdk, T: Block> CellBuilder<PDK, T> {
     /// Create an instance and immediately connect its ports.
     pub fn instantiate_connected<I, C>(&mut self, block: I, io: C)
     where
-        I: Schematic<PDK>,
+        I: Schematic<PDK, N>,
         C: SchematicBundle,
         <I::Io as SchematicType>::Bundle: Connect<C>,
     {
@@ -402,192 +396,6 @@ impl<PDK: Pdk, T: Block> CellBuilder<PDK, T> {
     /// Gets the global context.
     pub fn ctx(&self) -> &Context<PDK> {
         &self.ctx
-    }
-}
-
-impl<PDK: Pdk, S: Simulator, T: Block> SimCellBuilder<PDK, S, T> {
-    /// Get a reference to the simulator being used.
-    pub fn simulator(&self) -> &S {
-        &self.simulator
-    }
-
-    pub(crate) fn finish(self) -> RawCell {
-        self.inner.finish()
-    }
-
-    /// Create a new signal with the given name and hardware type.
-    pub fn signal<TY: SchematicType>(
-        &mut self,
-        name: impl Into<ArcStr>,
-        ty: TY,
-    ) -> <TY as SchematicType>::Bundle {
-        self.inner.signal(name, ty)
-    }
-
-    /// Starts generating a block in a new thread and returns a handle to its cell.
-    ///
-    /// Can be used to check data stored in the cell or other generation results before adding the
-    /// cell to the current schematic with [`CellBuilder::add`].
-    ///
-    /// To generate and add the block simultaneously, use [`CellBuilder::instantiate`]. However,
-    /// error recovery and other checks are not possible when using
-    /// [`instantiate`](CellBuilder::instantiate).
-    pub fn generate<I: Schematic<PDK>>(&mut self, block: I) -> CellHandle<I> {
-        self.inner.generate(block)
-    }
-
-    /// Generates a cell corresponding to `block` and returns a handle to it.
-    ///
-    /// Blocks on generation. Useful for handling errors thrown by the generation of a cell immediately.
-    ///
-    /// As with [`CellBuilder::generate`], the resulting handle must be added to the schematic with
-    /// [`CellBuilder::add`] before it can be connected as an instance.
-    pub fn generate_blocking<I: Schematic<PDK>>(&mut self, block: I) -> Result<CellHandle<I>> {
-        self.inner.generate_blocking(block)
-    }
-
-    /// Adds a cell generated with [`CellBuilder::generate`] to the current schematic.
-    ///
-    /// Does not block on generation. Spawns a thread that waits on the generation of
-    /// the underlying cell and panics if generation fails. If error recovery is desired,
-    /// check errors before calling this function using [`CellHandle::try_cell`].
-    ///
-    /// # Panics
-    ///
-    /// Immediately panics if this cell has been marked as a blackbox.
-    /// A blackbox cell cannot contain instances or primitive devices.
-    ///
-    /// The spawned thread may panic after this function returns if cell generation fails.
-    #[track_caller]
-    pub fn add<I: Schematic<PDK>>(&mut self, cell: CellHandle<I>) -> Instance<I> {
-        assert!(
-            self.inner.blackbox.is_none(),
-            "cannot add instances to a blackbox cell"
-        );
-        self.inner.post_instantiate(cell, SourceInfo::from_caller())
-    }
-
-    /// Instantiate a schematic view of the given block.
-    ///
-    /// # Panics
-    ///
-    /// Panics if this cell has been marked as a blackbox.
-    /// A blackbox cell cannot contain instances or primitive devices.
-    pub fn instantiate<I: Schematic<PDK>>(&mut self, block: I) -> Instance<I> {
-        self.inner.instantiate(block)
-    }
-
-    /// Create an instance and immediately connect its ports.
-    pub fn instantiate_connected<I, C>(&mut self, block: I, io: C)
-    where
-        I: Schematic<PDK>,
-        C: SchematicBundle,
-        <I::Io as SchematicType>::Bundle: Connect<C>,
-    {
-        self.inner.instantiate_connected(block, io)
-    }
-
-    /// Connect all signals in the given data instances.
-    pub fn connect<D1, D2>(&mut self, s1: D1, s2: D2)
-    where
-        D1: SchematicBundle,
-        D2: SchematicBundle,
-        D1: Connect<D2>,
-    {
-        self.inner.connect(s1, s2)
-    }
-
-    /// Add a primitive device to the schematic of the current cell.
-    ///
-    /// # Panics
-    ///
-    /// Panics if this cell has been marked as a blackbox.
-    /// A blackbox cell cannot contain instances or primitive devices.
-    pub fn add_primitive(&mut self, device: PrimitiveDevice) {
-        self.inner.add_primitive(device)
-    }
-
-    /// Marks this cell as a blackbox containing the given content.
-    ///
-    /// # Panics
-    ///
-    /// Panics if any instances or primitive devices have already been
-    /// added to this cell. A blackbox cell cannot contain instances or
-    /// primitive devices.
-    pub fn set_blackbox(&mut self, contents: impl Into<BlackboxContents>) {
-        self.inner.set_blackbox(contents)
-    }
-
-    /// Starts generating a block in a new thread and returns a handle to its cell.
-    ///
-    /// Can be used to check data stored in the cell or other generation results before adding the
-    /// cell to the current schematic with [`CellBuilder::add`].
-    ///
-    /// To generate and add the block simultaneously, use [`CellBuilder::instantiate`]. However,
-    /// error recovery and other checks are not possible when using
-    /// [`instantiate`](CellBuilder::instantiate).
-    pub fn generate_tb<I: HasSimSchematic<PDK, S>>(&mut self, block: I) -> SimCellHandle<I> {
-        self.inner.ctx.generate_testbench_schematic(Arc::new(block))
-    }
-
-    /// Generates a cell corresponding to `block` and returns a handle to it.
-    ///
-    /// Blocks on generation. Useful for handling errors thrown by the generation of a cell immediately.
-    ///
-    /// As with [`CellBuilder::generate`], the resulting handle must be added to the schematic with
-    /// [`CellBuilder::add`] before it can be connected as an instance.
-    pub fn generate_tb_blocking<I: HasSimSchematic<PDK, S>>(
-        &mut self,
-        block: I,
-    ) -> Result<SimCellHandle<I>> {
-        let cell = self.inner.ctx.generate_testbench_schematic(Arc::new(block));
-        cell.try_cell()?;
-        Ok(cell)
-    }
-
-    /// Adds a cell generated with [`CellBuilder::generate`] to the current schematic.
-    ///
-    /// Does not block on generation. Spawns a thread that waits on the generation of
-    /// the underlying cell and panics if generation fails. If error recovery is desired,
-    /// check errors before calling this function using [`CellHandle::try_cell`].
-    ///
-    /// # Panics
-    ///
-    /// Immediately panics if this cell has been marked as a blackbox.
-    /// A blackbox cell cannot contain instances or primitive devices.
-    ///
-    /// The spawned thread may panic after this function returns if cell generation fails.
-    #[track_caller]
-    pub fn add_tb<I: HasSimSchematic<PDK, S>>(&mut self, cell: SimCellHandle<I>) -> Instance<I> {
-        assert!(
-            self.inner.blackbox.is_none(),
-            "cannot add instances to a blackbox cell"
-        );
-        self.inner
-            .post_instantiate(cell.0, SourceInfo::from_caller())
-    }
-
-    /// Instantiate a testbench schematic view of the given block.
-    ///
-    /// # Panics
-    ///
-    /// Panics if this cell has been marked as a blackbox.
-    /// A blackbox cell cannot contain instances or primitive devices.
-    #[track_caller]
-    pub fn instantiate_tb<I: HasSimSchematic<PDK, S>>(&mut self, block: I) -> Instance<I> {
-        assert!(
-            self.inner.blackbox.is_none(),
-            "cannot add instances to a blackbox cell"
-        );
-
-        let cell = self.inner.ctx.generate_testbench_schematic(Arc::new(block));
-        self.inner
-            .post_instantiate(cell.0, SourceInfo::from_caller())
-    }
-
-    /// Gets the global context.
-    pub fn ctx(&self) -> &Context<PDK> {
-        &self.inner.ctx
     }
 }
 
@@ -675,10 +483,6 @@ impl<T: ExportsSchematicData> Clone for CellHandle<T> {
     }
 }
 
-/// A handle to a testbench schematic cell that is being generated.
-#[derive(Clone)]
-pub struct SimCellHandle<T: ExportsSchematicData>(pub(crate) CellHandle<T>);
-
 impl<T: ExportsSchematicData> CellHandle<T> {
     /// Tries to access the underlying [`Cell`].
     ///
@@ -700,26 +504,6 @@ impl<T: ExportsSchematicData> CellHandle<T> {
     /// Panics if generation fails.
     pub fn cell(&self) -> &Cell<T> {
         self.try_cell().expect("cell generation failed")
-    }
-}
-
-impl<T: ExportsSchematicData> SimCellHandle<T> {
-    /// Tries to access the underlying [`Cell`].
-    ///
-    /// Blocks until cell generation completes and returns an error if one was thrown during generation.
-    pub fn try_cell(&self) -> Result<&Cell<T>> {
-        self.0.try_cell()
-    }
-
-    /// Returns the underlying [`Cell`].
-    ///
-    /// Blocks until cell generation completes.
-    ///
-    /// # Panics
-    ///
-    /// Panics if generation fails.
-    pub fn cell(&self) -> &Cell<T> {
-        self.0.cell()
     }
 }
 
@@ -753,19 +537,9 @@ pub(crate) struct RawCell {
     uf: NodeUf,
     node_names: HashMap<Node, NameBuf>,
     roots: HashMap<Node, Node>,
-    contents: RawCellContents,
+    instances: Vec<RawInstance>,
     /// Whether this cell should be flattened when being exported.
     flatten: bool,
-}
-
-/// The (possibly blackboxed) contents of a raw cell.
-pub(crate) type RawCellContents = Opacity<BlackboxContents, RawCellInner>;
-
-/// The inner contents of a not-blackboxed [`RawCell`].
-#[derive(Debug, Clone)]
-pub(crate) struct RawCellInner {
-    primitives: Vec<PrimitiveDevice>,
-    instances: Vec<RawInstance>,
 }
 
 /// A cell-wide unique identifier for an instance.
