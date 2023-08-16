@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.6.0](https://github.com/substrate-labs/substrate2/compare/scir-v0.5.0...scir-v0.6.0) (2023-08-16)
+
+
+### Features
+
+* **netlister:** reduce duplicate code between spectre and SPICE netlisters ([#261](https://github.com/substrate-labs/substrate2/issues/261)) ([5ba3623](https://github.com/substrate-labs/substrate2/commit/5ba36230e653e4dc77819c5c50b527311768cd83))
+* **netlists:** support ideal 2-terminal capacitors ([#269](https://github.com/substrate-labs/substrate2/issues/269)) ([7de9843](https://github.com/substrate-labs/substrate2/commit/7de9843c9b629ea06518448fe26d384de4a66cdc))
+* **netlists:** use consistent ordering via indexmap ([#266](https://github.com/substrate-labs/substrate2/issues/266)) ([f275c19](https://github.com/substrate-labs/substrate2/commit/f275c19396ed4f7d255836822ff72b808f89cde7)), closes [#265](https://github.com/substrate-labs/substrate2/issues/265)
+* **ngspice:** create ngspice simulator ([#274](https://github.com/substrate-labs/substrate2/issues/274)) ([0205300](https://github.com/substrate-labs/substrate2/commit/02053006bc26d0b3d9e1d380def89836d7921857))
+* **primitives:** add 2-terminal capacitor primitive ([#262](https://github.com/substrate-labs/substrate2/issues/262)) ([bc622b9](https://github.com/substrate-labs/substrate2/commit/bc622b936a77719dbf92f76fdc3cbfbae61e9021))
+* **primitives:** add built-in resistor and capacitor schematic blocks ([bc622b9](https://github.com/substrate-labs/substrate2/commit/bc622b936a77719dbf92f76fdc3cbfbae61e9021))
+
+
+### Bug Fixes
+
+* **scir:** remove use of opacity from SCIR ([#286](https://github.com/substrate-labs/substrate2/issues/286)) ([5e38b28](https://github.com/substrate-labs/substrate2/commit/5e38b288629b5f2d6d3ca372418a331b6bd98e5e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * enumify bumped from 0.0.0 to 0.1.0
+
 ## [0.5.0](https://github.com/substrate-labs/substrate2/compare/scir-v0.4.0...scir-v0.5.0) (2023-08-08)
 
 

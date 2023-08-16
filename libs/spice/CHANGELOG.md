@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.5.0](https://github.com/substrate-labs/substrate2/compare/spice-v0.4.0...spice-v0.5.0) (2023-08-16)
+
+
+### Features
+
+* **netlister:** reduce duplicate code between spectre and SPICE netlisters ([#261](https://github.com/substrate-labs/substrate2/issues/261)) ([5ba3623](https://github.com/substrate-labs/substrate2/commit/5ba36230e653e4dc77819c5c50b527311768cd83))
+* **netlists:** use consistent ordering via indexmap ([#266](https://github.com/substrate-labs/substrate2/issues/266)) ([f275c19](https://github.com/substrate-labs/substrate2/commit/f275c19396ed4f7d255836822ff72b808f89cde7)), closes [#265](https://github.com/substrate-labs/substrate2/issues/265)
+* **ngspice:** create ngspice simulator ([#274](https://github.com/substrate-labs/substrate2/issues/274)) ([0205300](https://github.com/substrate-labs/substrate2/commit/02053006bc26d0b3d9e1d380def89836d7921857))
+
+
+### Bug Fixes
+
+* **deps:** remove opacity from spice library ([#287](https://github.com/substrate-labs/substrate2/issues/287)) ([a45b728](https://github.com/substrate-labs/substrate2/commit/a45b7288e240a9955d91acb437fa251fccb66b75))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * scir bumped from 0.5.0 to 0.6.0
+
 ## [0.4.0](https://github.com/substrate-labs/substrate2/compare/spice-v0.3.0...spice-v0.4.0) (2023-08-08)
 
 

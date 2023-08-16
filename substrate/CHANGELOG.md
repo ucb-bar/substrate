@@ -5,6 +5,42 @@
     * codegen bumped from 0.1.0 to 0.1.1
     * substrate_api bumped from 0.1.0 to 0.1.1
 
+## [0.7.0](https://github.com/substrate-labs/substrate2/compare/substrate-v0.6.1...substrate-v0.7.0) (2023-08-16)
+
+
+### Features
+
+* **ics:** spectre initial conditions ([#275](https://github.com/substrate-labs/substrate2/issues/275)) ([ce3724e](https://github.com/substrate-labs/substrate2/commit/ce3724e9e907f3eb3653dbf39f763865914235e3))
+* **impl-dispatch:** remove impl dispatch in favor of trait bounds ([#283](https://github.com/substrate-labs/substrate2/issues/283)) ([d954115](https://github.com/substrate-labs/substrate2/commit/d9541152db52aebde928e41c0d800453e906d62b))
+* **netlister:** reduce duplicate code between spectre and SPICE netlisters ([#261](https://github.com/substrate-labs/substrate2/issues/261)) ([5ba3623](https://github.com/substrate-labs/substrate2/commit/5ba36230e653e4dc77819c5c50b527311768cd83))
+* **netlists:** use consistent ordering via indexmap ([#266](https://github.com/substrate-labs/substrate2/issues/266)) ([f275c19](https://github.com/substrate-labs/substrate2/commit/f275c19396ed4f7d255836822ff72b808f89cde7)), closes [#265](https://github.com/substrate-labs/substrate2/issues/265)
+* **ngspice:** create ngspice simulator ([#274](https://github.com/substrate-labs/substrate2/issues/274)) ([0205300](https://github.com/substrate-labs/substrate2/commit/02053006bc26d0b3d9e1d380def89836d7921857))
+* **polygon:** polygon implemented in geometry ([#263](https://github.com/substrate-labs/substrate2/issues/263)) ([4508570](https://github.com/substrate-labs/substrate2/commit/45085706a30a12f4af6c5e3f642ca55b4c32dd24))
+* **primitives:** add 2-terminal capacitor primitive ([#262](https://github.com/substrate-labs/substrate2/issues/262)) ([bc622b9](https://github.com/substrate-labs/substrate2/commit/bc622b936a77719dbf92f76fdc3cbfbae61e9021))
+* **primitives:** add built-in resistor and capacitor schematic blocks ([bc622b9](https://github.com/substrate-labs/substrate2/commit/bc622b936a77719dbf92f76fdc3cbfbae61e9021))
+* **refactor:** rename Has_ and Has_Data ([#282](https://github.com/substrate-labs/substrate2/issues/282)) ([2018153](https://github.com/substrate-labs/substrate2/commit/2018153686dd7ef3df0e10874db3c656ca245026))
+
+
+### Bug Fixes
+
+* **deps:** remove opacity from substrate and deps ([#288](https://github.com/substrate-labs/substrate2/issues/288)) ([a8c97b3](https://github.com/substrate-labs/substrate2/commit/a8c97b30b4d075343903fa580437e9a099a745a2))
+* **scir:** remove use of opacity from SCIR ([#286](https://github.com/substrate-labs/substrate2/issues/286)) ([5e38b28](https://github.com/substrate-labs/substrate2/commit/5e38b288629b5f2d6d3ca372418a331b6bd98e5e))
+
+
+### Dependencies
+
+* The following workspace dependencies were updated
+  * dependencies
+    * examples bumped from 0.3.1 to 0.4.0
+    * codegen bumped from 0.6.1 to 0.7.0
+    * geometry bumped from 0.4.0 to 0.5.0
+    * enumify bumped from 0.0.0 to 0.1.0
+    * scir bumped from 0.5.0 to 0.6.0
+    * spice bumped from 0.4.0 to 0.5.0
+  * dev-dependencies
+    * sky130pdk bumped from <=0.6.1 to <=0.7.0
+    * spectre bumped from <=0.6.1 to <=0.7.0
+
 ## [0.6.1](https://github.com/substrate-labs/substrate2/compare/substrate-v0.6.0...substrate-v0.6.1) (2023-08-08)
 
 

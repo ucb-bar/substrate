@@ -1,12 +1,12 @@
 [package]
 name = "sky130pdk"
-version = "0.6.1"
+version = "0.7.0"
 edition = "2021"
 
 [dependencies]
-substrate = { version = "0.6.1", registry = "substrate", path = "../../substrate" }
-spectre = { version = "0.6.1", registry = "substrate", path = "../../tools/spectre" }
-ngspice = { version = "0.0.0", registry = "substrate", path = "../../tools/ngspice" }
+substrate = { version = "0.7.0", registry = "substrate", path = "../../substrate" }
+spectre = { version = "0.7.0", registry = "substrate", path = "../../tools/spectre" }
+ngspice = { version = "0.1.0", registry = "substrate", path = "../../tools/ngspice" }
 
 rust_decimal = "1.31"
 rust_decimal_macros = "1.31"
